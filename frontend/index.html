@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TikTok Live Interaksi</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', sans-serif;
+            background: #0f0f0f;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        h2 {
+            margin: 10px 0 5px;
+            font-size: 24px;
+            color: #ff2d55;
+        }
+
+        .donasi-box {
+            margin-bottom: 5px;
+            background: #1e3a8a;
+            color: #c7d2fe;
+            padding: 6px 12px;
+            border-radius: 8px;
+        }
+
+        .chat-container {
+            flex: 1;
+            width: 90%;
+            max-width: 600px;
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 10px;
+            padding: 15px;
+            overflow-y: auto;
+            box-shadow: 0 0 10px rgba(255, 45, 85, 0.3);
+        }
+
+        .chat-message {
+            margin-bottom: 10px;
+            background: #292929;
+            padding: 10px 15px;
+            border-radius: 8px;
+        }
+
+        .nickname {
+            font-weight: bold;
+            color: #1da1f2;
+        }
+
+        .comment,
+        .event {
+            margin-top: 5px;
+        }
+
+        .follow {
+            background-color: #14532d;
+            color: #a7f3d0;
+        }
+
+        .gift {
+            background-color: #7c2d12;
+            color: #fdba74;
+        }
+
+        .saweria {
+            margin-top: 10px;
+            background: #ffe500;
+            padding: 8px 12px;
+            border-radius: 8px;
+        }
+
+        .saweria a {
+            color: black;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .summary-section {
+            margin: 10px 0;
+            padding: 10px;
+            background: #111;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 600px;
+            font-size: 14px;
+        }
+
+        .summary-section h3 {
+            margin: 0 0 5px;
+            font-size: 16px;
+            color: #fff;
+        }
+
+        .summary-section ul {
+            padding-left: 20px;
+        }
+
+        .summary-section li {
+            line-height: 1.4;
+        }
+    </style>
+</head>
+
+<body>
+    <h2>🔥 TikTok Live Interaksi</h2>
+    <div class="donasi-box">Total Donasi: <span id="totalDonasi">0</span> 🎁</div>
+    <div class="chat-container" id="chatBox"></div>
+    <div class="summary-section">
+        <h3>🎁 Daftar Pemberi Gift TikTok:</h3>
+        <ul id="giftSendersList"></ul>
+    </div>
+    <div class="summary-section">
+        <h3>💖 Donatur Saweria:</h3>
+        <ul id="saweriaDonorsList"></ul>
+    </div>
+    <div class="saweria">
+        💖 <a href="https://saweria.co/OjolXProgrammer" target="_blank">Dukung di Saweria</a>
+    </div>
+
+    <script>
+        const socket = new WebSocket("ws://localhost:8080");
+
+        socket.onmessage = function (event) {
+            const data = JSON.parse(event.data);
+            const chatBox = document.getElementById("chatBox");
+            const totalBox = document.getElementById("totalDonasi");
+
+            if (data.type === 'history') {
+                chatBox.innerHTML = '';
+                data.data.forEach(msg => appendMessage(msg));
+            } else if (data.type === 'donation-total') {
+                totalBox.textContent = data.data;
+            } else if (data.type === 'gift-senders') {
+                updateGiftList(data.data);
+            } else if (data.type === 'saweria-donors') {
+                updateSaweriaList(data.data);
+            } else {
+                appendMessage(data.data, data.type);
+            }
+        };
+
+        function appendMessage(data, type) {
+            const msgDiv = document.createElement("div");
+            msgDiv.className = "chat-message";
+
+            if (type === 'follow') msgDiv.classList.add('follow');
+            if (type === 'gift') msgDiv.classList.add('gift');
+
+            const nickname = document.createElement("div");
+            nickname.className = "nickname";
+            nickname.textContent = data.nickname;
+
+            const content = document.createElement("div");
+            content.className = type === 'follow' || type === 'gift' ? 'event' : 'comment';
+
+            if (type === 'follow') {
+                content.textContent = 'Mulai mengikuti!';
+            } else if (type === 'gift') {
+                content.textContent = `Gift: ${data.giftName} x${data.repeatCount}`;
+            } else if (type === 'saweria') {
+                content.textContent = `Donasi Rp${data.amount}`;
+            } else {
+                content.textContent = data.comment;
+            }
+
+            msgDiv.appendChild(nickname);
+            msgDiv.appendChild(content);
+            document.getElementById("chatBox").appendChild(msgDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function updateGiftList(gifts) {
+            const list = document.getElementById("giftSendersList");
+            list.innerHTML = '';
+            for (const user in gifts) {
+                const items = gifts[user];
+                const li = document.createElement("li");
+                const giftText = Object.entries(items).map(([gift, count]) => `${gift} x${count}`).join(', ');
+                li.textContent = `${user}: ${giftText}`;
+                list.appendChild(li);
+            }
+        }
+
+        function updateSaweriaList(donors) {
+            const list = document.getElementById("saweriaDonorsList");
+            list.innerHTML = '';
+            donors.forEach(d => {
+                const li = document.createElement("li");
+                li.textContent = `${d.nickname}: Rp${d.amount}`;
+                list.appendChild(li);
+            });
+        }
+    </script>
+</body>
+
+</html>
